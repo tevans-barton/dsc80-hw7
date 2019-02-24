@@ -8,6 +8,8 @@ import json
 import re
 
 
+API_KEY = 'e2210554892140e9bd1b8c87f7242100'
+
 # ---------------------------------------------------------------------
 # Question # 1
 # ---------------------------------------------------------------------
@@ -25,8 +27,13 @@ def send_requests(apiKey, *args):
     >>> isinstance(responses[1], dict)
     True
     """
-
-    return ...
+    toReturn = []
+    for arg in args:
+        url = ('https://newsapi.org/v2/top-headlines?'
+                'language=' + str(arg) + '&'
+                'apiKey=' + str(apiKey))
+        toReturn.append({arg : requests.get(url)})
+    return toReturn
 
 
 def gather_info(resp):
@@ -45,6 +52,7 @@ def gather_info(resp):
     """
 
     return ...
+
 
 # ---------------------------------------------------------------------
 # Question # 2
@@ -69,8 +77,11 @@ def match_1(string):
     :param string: some text
     :return: Returns whether or not a string matches abc
     """
-
-    return ...
+    result = re.match('.*abc.*', string)
+    if result:
+        return True
+    else:
+        return False
 
 def match_2(string):
     """
@@ -86,8 +97,11 @@ def match_2(string):
     >>> match_2("12")
     False
     """
-
-    return ...
+    result = re.match('.*[0-9]{3}.*', string)
+    if result:
+        return True
+    else:
+        return False
 
 def match_3(string):
     """
@@ -103,8 +117,11 @@ def match_3(string):
     >>> match_3("abc1")
     False
     """
-
-    return ...
+    result = re.match('.{3}\..*', string)
+    if result:
+        return True
+    else:
+        return False
 
 def match_4(string):
     """
@@ -120,8 +137,11 @@ def match_4(string):
     >>> match_4("ran")
     False
     """
-
-    return ...
+    result = re.match('.*(c|m|f)an.*', string)
+    if result:
+        return True
+    else:
+        return False
 
 def match_5(string):
     """
@@ -137,8 +157,11 @@ def match_5(string):
     >>> match_5("bog")
     False
     """
-
-    return ...
+    result = re.match('[^b].*og.*', string)
+    if result:
+        return True
+    else:
+        return False
 
 def match_6(string):
     """
@@ -154,8 +177,11 @@ def match_6(string):
     >>> match_6("steve")
     False
     """
-
-    return ...
+    result = re.match('^[A-Z]', string)
+    if result:
+        return True
+    else:
+        return False
 
 def match_7(string):
     """
@@ -171,8 +197,11 @@ def match_7(string):
     >>> match_7("wazup")
     False
     """
-
-    return ...
+    result = re.match('w+a+z+z+u+p+', string)
+    if result:
+        return True
+    else:
+        return False
 
 def match_8(string):
     """
@@ -188,8 +217,11 @@ def match_8(string):
     >>> match_8("a")
     False
     """
-
-    return ...
+    result = re.match('.*a+(b|c)+', string)
+    if result:
+        return True
+    else:
+        return False
 
 def match_9(string):
     """
@@ -205,8 +237,11 @@ def match_9(string):
     >>> match_9("No files found.")
     False
     """
-
-    return ...
+    result = re.match('[0-9]+ file(s){0,1} found\?', string)
+    if result:
+        return True
+    else:
+        return False
 
 def match_10(string):
     """
@@ -222,8 +257,11 @@ def match_10(string):
     >>> match_10("4.abc")
     False
     """
-
-    return ...
+    result = re.match('[0-9]+\. +[A-Za-z]+', string)
+    if result:
+        return True
+    else:
+        return False
 
 def match_11(string):
     """
@@ -239,8 +277,11 @@ def match_11(string):
     >>> match_11("Next Mission: successful upon capture of target")
     False
     """
-
-    return ...
+    result = re.match('(^(Mission:)).*(( successful)$)', string)
+    if result:
+        return True
+    else:
+        return False
 
 
 # ---------------------------------------------------------------------
