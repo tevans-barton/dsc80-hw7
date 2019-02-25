@@ -7,8 +7,8 @@ import time
 import json
 import re
 
+os.environ['API_KEY'] = 'e2210554892140e9bd1b8c87f7242100'
 
-API_KEY = 'e2210554892140e9bd1b8c87f7242100'
 
 # ---------------------------------------------------------------------
 # Question # 1
@@ -50,8 +50,33 @@ def gather_info(resp):
     >>> len(result) == len(responses) + 1
     True
     """
+    lang_most = get_most_results(resp)
+    urlList = []
+    for x in resp:
+        bigUrlList = get_urls(json.loads(list(x.values())[0].text))
+        urlList.append(most_common_in_list(bigUrlList))
+    return [lang_most] + urlList
 
-    return ...
+def get_most_results(resp):
+    max_articles = 0
+    langToReturn = ''
+    for x in resp:
+        tempdict = json.loads(list(x.values())[0].text)
+        if tempdict['totalResults'] >= max_articles:
+            langToReturn = list(x.keys())[0]
+    return langToReturn
+
+def get_urls(dict):
+    urls = []
+    for article in dict['articles']:
+        urls.append(re.sub('/', '', re.findall('/[A-Za-z0-9 \.]+/', article['url'])[0]))
+    return urls
+
+def most_common_in_list(urlList):
+    return max(set(urlList), key=urlList.count)
+
+
+
 
 
 # ---------------------------------------------------------------------
@@ -74,6 +99,7 @@ def match_1(string):
     True
     >>> match_1("ab")
     False
+
     :param string: some text
     :return: Returns whether or not a string matches abc
     """
@@ -197,7 +223,7 @@ def match_7(string):
     >>> match_7("wazup")
     False
     """
-    result = re.match('w+a+z+z+u+p+', string)
+    result = re.match('.*waz+zup.*', string)
     if result:
         return True
     else:
@@ -257,7 +283,7 @@ def match_10(string):
     >>> match_10("4.abc")
     False
     """
-    result = re.match('[0-9]+\. +[A-Za-z]+', string)
+    result = re.match('.*[0-9]+\.\s+.+', string)
     if result:
         return True
     else:
@@ -303,8 +329,13 @@ def extract_personal(s):
     >>> addresses[0] == '530 High Street'
     True
     """
-
-    return ...
+    emails = re.findall('[A-Za-z0-9]+@[A-Za-z0-9]+\.[a-z]{3}', s)
+    ssn = re.findall('ssn:[0-9]{3}-[0-9]{2}-[0-9]{4}',s)
+    ssn = [re.sub('ssn:', '', x) for x in ssn]
+    bitcoin = re.findall('bitcoin:[A-Za-z0-9]+', s)
+    bitcoin = [re.sub('bitcoin:', '', x) for x in bitcoin]
+    addresses = re.findall('[0-9]+ [A-Za-z ]+', s)
+    return (emails, ssn, bitcoin, addresses)
 
 # ---------------------------------------------------------------------
 # Question # 4
@@ -322,7 +353,23 @@ def tfidf_data(review, reviews):
     >>> 'before' in out.index
     True
     """
-    return ...
+    words = review.split()
+    wordSeries = pd.Series(words)
+    index = np.sort(wordSeries.unique())
+    cnt = wordSeries.value_counts().sort_index()
+    tf = cnt / len(words)
+    idfList = []
+    tfidfList = []
+    for w in index:
+        re_pat = '\\b%s\\b' % w
+        idfList.append(np.log(len(reviews) / reviews.str.contains(re_pat).sum()))
+    idf = pd.Series(idfList, index = index)
+    for i in index:
+        tfidfList.append(tf[i] * idf[i])
+    tfidf = pd.Series(tfidfList, index = index)
+    df = pd.DataFrame({'cnt' : cnt, 'tf' : tf, 'idf' : idf, 'tfidf' : tfidf}, index = index)
+    return df
+
 
 
 def relevant_word(out):
@@ -335,7 +382,8 @@ def relevant_word(out):
     >>> relevant_word(out) in out.index
     True
     """
-    return ...
+    df = out.sort_values('tfidf', ascending = False)
+    return df.index[0]
 
 
 # ---------------------------------------------------------------------
@@ -351,8 +399,7 @@ def hashtag_list(tweet_text):
     >>> (out.iloc[0] == ['NLP', 'NLP1', 'NLP1'])
     True
     """
-
-    return ...
+    return tweet_text.apply(lambda x : [word.replace('#', '') for word in re.findall('#[A-Za-z0-9]+', x)])
 
 
 def most_common_hashtag(tweet_lists):
@@ -363,8 +410,19 @@ def most_common_hashtag(tweet_lists):
     >>> most_common_hashtag(test).iloc[0]
     'NLP1'
     """
+    wordlists = tweet_lists.sum()
+    return tweet_lists.apply(lambda x : find_max(x, wordlists))
 
-    return ...
+def find_max(small_list, big_list):
+    if len(small_list) == 0:
+        return np.NaN
+    elif len(small_list) == 1:
+        return small_list[0]
+    else:
+        tempdict = {}
+        for x in small_list:
+            tempdict[big_list.count(x)] = x
+        return tempdict[np.max(list(tempdict.keys()))]
 
 
 # ---------------------------------------------------------------------
@@ -384,8 +442,30 @@ def create_features(ira):
     >>> (out == ans).all().all()
     True
     """
-    
-    return ...
+    df = pd.DataFrame()
+    df['text'] = ira['text'].apply(lambda x : clean_text(x))
+    df['num_hashtags'] = pd.Series([len(x) for x in hashtag_list(ira['text'])])
+    df['mc_hashtags'] = pd.Series(most_common_hashtag(hashtag_list(ira['text'])))
+    df['num_tags'] = ira['text'].apply(lambda x : len(re.findall('@[A-Za-z0-9]+', x)))
+    df['num_links'] = ira['text'].apply(lambda x : len(re.findall('http.*', x)))
+    df['is_retweet'] = ira['text'].apply(lambda x : is_retweet(x))
+    return df
+
+def is_retweet(string):
+    result = re.match('^(RT)', string)
+    if result:
+        return True
+    else:
+        return False
+
+def clean_text(string):
+    string = re.sub('@[A-Za-z0-9]+', '', string)
+    string = re.sub('#[A-Za-z0-9]+', '', string)
+    string = re.sub('RT', '', string)
+    string = re.sub('http.*', '', string)
+    string = re.sub('[^A-Za-z0-9 ]',' ', string)
+    string = string.lower().lstrip().rstrip()
+    return string
 
 # ---------------------------------------------------------------------
 # DO NOT TOUCH BELOW THIS LINE
